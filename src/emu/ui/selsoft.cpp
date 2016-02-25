@@ -1,4 +1,4 @@
-﻿// license:BSD-3-Clause
+// license:BSD-3-Clause
 // copyright-holders:Dankan1890
 /***************************************************************************
 
@@ -29,9 +29,9 @@ std::string reselect_last::software;
 std::string reselect_last::swlist;
 bool reselect_last::m_reselect = false;
 static const char *region_lists[] = { "arab", "arg", "asia", "aus", "aut", "bel", "blr", "bra", "can", "chi", "chn", "cze", "den",
-                                      "ecu", "esp", "euro", "fin", "fra", "gbr", "ger", "gre", "hkg", "hun", "irl", "isr",
-                                      "isv", "ita", "jpn", "kaz", "kor", "lat", "lux", "mex", "ned", "nld", "nor", "nzl",
-                                      "pol", "rus", "slo", "spa", "sui", "swe", "tha", "tpe", "tw", "uk", "ukr", "usa" };
+										"ecu", "esp", "euro", "fin", "fra", "gbr", "ger", "gre", "hkg", "hun", "irl", "isr",
+										"isv", "ita", "jpn", "kaz", "kor", "lat", "lux", "mex", "ned", "nld", "nor", "nzl",
+										"pol", "rus", "slo", "spa", "sui", "swe", "tha", "tpe", "tw", "uk", "ukr", "usa" };
 
 //-------------------------------------------------
 //  compares two items in the software list and
@@ -106,7 +106,7 @@ bool has_multiple_bios(const game_driver *driver, std::vector<s_bios> &biosname)
 
 			if (bname == default_name)
 			{
-				name.append(" (default)");
+				name.append(_(" (default)"));
 				biosname.emplace(biosname.begin(), name, bios_flags - 1);
 			}
 			else
@@ -318,7 +318,6 @@ void ui_menu_select_software::handle()
 	if (check_filter)
 	{
 		m_search[0] = '\0';
-
 		switch (l_sw_hover)
 		{
 			case UI_SW_REGION:
@@ -424,7 +423,7 @@ void ui_menu_select_software::populate()
 				old_software = m_has_empty_start ? curitem + 1 : curitem;
 
 			item_append(m_displaylist[curitem]->longname.c_str(), m_displaylist[curitem]->devicetype.c_str(),
-			            m_displaylist[curitem]->parentname.empty() ? flags_ui : (MENU_FLAG_INVERT | flags_ui), (void *)m_displaylist[curitem]);
+						m_displaylist[curitem]->parentname.empty() ? flags_ui : (MENU_FLAG_INVERT | flags_ui), (void *)m_displaylist[curitem]);
 		}
 	}
 
@@ -434,8 +433,8 @@ void ui_menu_select_software::populate()
 
 		for (int curitem = 0; m_searchlist[curitem] != nullptr; ++curitem)
 			item_append(m_searchlist[curitem]->longname.c_str(), m_searchlist[curitem]->devicetype.c_str(),
-			            m_searchlist[curitem]->parentname.empty() ? flags_ui : (MENU_FLAG_INVERT | flags_ui),
-			            (void *)m_searchlist[curitem]);
+						m_searchlist[curitem]->parentname.empty() ? flags_ui : (MENU_FLAG_INVERT | flags_ui),
+						(void *)m_searchlist[curitem]);
 	}
 
 	item_append(MENU_SEPARATOR_ITEM, nullptr, flags_ui, nullptr);
@@ -603,7 +602,7 @@ void ui_menu_select_software::build_software_list()
 
 void ui_menu_select_software::custom_render(void *selectedref, float top, float bottom, float origx1, float origy1, float origx2, float origy2)
 {
-	ui_software_info *swinfo = (FPTR)selectedref > 1 ? (ui_software_info *)selectedref : nullptr;
+	ui_software_info *swinfo = (ui_software_info *)selectedref;
 	const game_driver *driver = nullptr;
 	ui_manager &mui = machine().ui();
 	float width;
@@ -618,17 +617,17 @@ void ui_menu_select_software::custom_render(void *selectedref, float top, float 
 	tempbuf[1].assign("Driver: \"").append(m_driver->description).append("\" software list ");
 
 	if (sw_filters::actual == UI_SW_REGION && m_filter.region.ui.size() != 0)
-		filtered.assign("Region: ").append(m_filter.region.ui[m_filter.region.actual]).append(" - ");
+		filtered.assign(_("Region: ")).append(m_filter.region.ui[m_filter.region.actual]).append(" - ");
 	else if (sw_filters::actual == UI_SW_PUBLISHERS)
-		filtered.assign("Publisher: ").append(m_filter.publisher.ui[m_filter.publisher.actual]).append(" - ");
+		filtered.assign(_("Publisher: ")).append(m_filter.publisher.ui[m_filter.publisher.actual]).append(" - ");
 	else if (sw_filters::actual == UI_SW_YEARS)
-		filtered.assign("Year: ").append(m_filter.year.ui[m_filter.year.actual]).append(" - ");
+		filtered.assign(_("Year: ")).append(m_filter.year.ui[m_filter.year.actual]).append(" - ");
 	else if (sw_filters::actual == UI_SW_LIST)
-		filtered.assign("Software List: ").append(m_filter.swlist.description[m_filter.swlist.actual]).append(" - ");
+		filtered.assign(_("Software List: ")).append(m_filter.swlist.description[m_filter.swlist.actual]).append(" - ");
 	else if (sw_filters::actual == UI_SW_TYPE)
-		filtered.assign("Device type: ").append(m_filter.type.ui[m_filter.type.actual]).append(" - ");
+		filtered.assign(_("Device type: ")).append(m_filter.type.ui[m_filter.type.actual]).append(" - ");
 
-	tempbuf[2].assign(filtered).append("Search: ").append(m_search).append("_");
+	tempbuf[2].assign(filtered).append(_("Search: ")).append(m_search).append("_");
 
 	// get the size of the text
 	float maxwidth = origx2 - origx1;
@@ -636,7 +635,7 @@ void ui_menu_select_software::custom_render(void *selectedref, float top, float 
 	for (int line = 0; line < 3; ++line)
 	{
 		mui.draw_text_full(container, tempbuf[line].c_str(), 0.0f, 0.0f, 1.0f, JUSTIFY_CENTER, WRAP_NEVER,
-		                              DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
+										DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
 		width += 2 * UI_BOX_LR_BORDER;
 		maxwidth = MAX(width, maxwidth);
 	}
@@ -659,7 +658,7 @@ void ui_menu_select_software::custom_render(void *selectedref, float top, float 
 	for (int line = 0; line < 3; ++line)
 	{
 		mui.draw_text_full(container, tempbuf[line].c_str(), x1, y1, x2 - x1, JUSTIFY_CENTER, WRAP_NEVER,
-		                              DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
+										DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
 		y1 += mui.get_line_height();
 	}
 
@@ -781,7 +780,7 @@ void ui_menu_select_software::custom_render(void *selectedref, float top, float 
 	for (auto & elem : tempbuf)
 	{
 		mui.draw_text_full(container, elem.c_str(), 0.0f, 0.0f, 1.0f, JUSTIFY_CENTER, WRAP_NEVER,
-		                              DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
+										DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
 		width += 2 * UI_BOX_LR_BORDER;
 		maxwidth = MAX(maxwidth, width);
 	}
@@ -808,7 +807,7 @@ void ui_menu_select_software::custom_render(void *selectedref, float top, float 
 	for (auto & elem : tempbuf)
 	{
 		mui.draw_text_full(container, elem.c_str(), x1, y1, x2 - x1, JUSTIFY_CENTER, WRAP_NEVER,
-		                              DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
+										DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
 		y1 += machine().ui().get_line_height();
 	}
 }
@@ -1088,7 +1087,6 @@ std::string c_sw_publisher::getname(std::string &str)
 //-------------------------------------------------
 void ui_menu_select_software::build_list(std::vector<ui_software_info *> &s_drivers, const char *filter_text, int filter)
 {
-
 	if (s_drivers.empty() && filter == -1)
 	{
 		filter = sw_filters::actual;
@@ -1185,7 +1183,7 @@ void ui_menu_select_software::find_matches(const char *str, int count)
 	std::vector<int> penalty(count, 9999);
 	int index = 0;
 
-	for (; m_displaylist[index]; ++index)
+	for (; index < m_displaylist.size(); ++index)
 	{
 		// pick the best match between driver name and description
 		int curpenalty = fuzzy_substring(str, m_displaylist[index]->longname);
@@ -1319,12 +1317,12 @@ float ui_menu_select_software::draw_left_panel(float x1, float y1, float x2, flo
 				hover = phover + filter;
 			}
 
-			if (afilter == filter)
-			{
-				bgcolor = UI_SELECTED_BG_COLOR;
-				fgcolor = UI_SELECTED_COLOR;
-			}
-
+/*          if (afilter == filter)
+            {
+                bgcolor = UI_SELECTED_BG_COLOR;
+                fgcolor = UI_SELECTED_COLOR;
+            }
+*/
 			if (bgcolor != UI_TEXT_BG_COLOR)
 				container->add_rect(x1, y1, x2, y1 + line_height, bgcolor, PRIMFLAG_BLENDMODE(BLENDMODE_ALPHA) | PRIMFLAG_TEXWRAP(TRUE));
 
@@ -1351,9 +1349,15 @@ float ui_menu_select_software::draw_left_panel(float x1, float y1, float x2, flo
 				}
 				convert_command_glyph(str);
 			}
+			else if (filter == sw_filters::actual)
+			{
+				str.assign("@custom1 ").append(text[filter]);
+				x1t -= text_sign;
+				convert_command_glyph(str);
+			}
 
 			mui.draw_text_full(container, str.c_str(), x1t, y1, x2 - x1, JUSTIFY_LEFT, WRAP_NEVER,
-			                   DRAW_NORMAL, fgcolor, bgcolor, nullptr, nullptr, text_size);
+								DRAW_NORMAL, fgcolor, bgcolor, nullptr, nullptr, text_size);
 			y1 += line_height;
 		}
 
@@ -1421,7 +1425,7 @@ void ui_menu_select_software::infos_render(void *selectedref, float origx1, floa
 	std::vector<int> xstart;
 	std::vector<int> xend;
 	float text_size = machine().ui().options().infos_size();
-	ui_software_info *soft = ((FPTR)selectedref > 2) ? (ui_software_info *)selectedref : nullptr;
+	ui_software_info *soft = (ui_software_info *)selectedref;
 	static ui_software_info *oldsoft = nullptr;
 	static int old_sw_view = -1;
 
@@ -1432,8 +1436,8 @@ void ui_menu_select_software::infos_render(void *selectedref, float origx1, floa
 	// apply title to right panel
 	if (soft && soft->usage.empty())
 	{
-		mui.draw_text_full(container, "History", origx1, origy1, origx2 - origx1, JUSTIFY_CENTER, WRAP_TRUNCATE,
-		                              DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
+		mui.draw_text_full(container, _("History"), origx1, origy1, origx2 - origx1, JUSTIFY_CENTER, WRAP_TRUNCATE,
+										DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
 		ui_globals::cur_sw_dats_view = 0;
 	}
 	else
@@ -1441,20 +1445,20 @@ void ui_menu_select_software::infos_render(void *selectedref, float origx1, floa
 		float title_size = 0.0f;
 		float txt_lenght = 0.0f;
 		std::string t_text[2];
-		t_text[0] = "History";
-		t_text[1] = "Usage";
+		t_text[0] = _("History");
+		t_text[1] = _("Usage");
 
 		for (auto & elem : t_text)
 		{
 			mui.draw_text_full(container, elem.c_str(), origx1, origy1, origx2 - origx1, JUSTIFY_CENTER, WRAP_TRUNCATE,
-			                              DRAW_NONE, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, &txt_lenght, nullptr);
+											DRAW_NONE, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, &txt_lenght, nullptr);
 			txt_lenght += 0.01f;
 			title_size = MAX(txt_lenght, title_size);
 		}
 
 		mui.draw_text_full(container, t_text[ui_globals::cur_sw_dats_view].c_str(), origx1, origy1, origx2 - origx1,
-		                              JUSTIFY_CENTER, WRAP_TRUNCATE, DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR,
-		                              nullptr, nullptr);
+										JUSTIFY_CENTER, WRAP_TRUNCATE, DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR,
+										nullptr, nullptr);
 
 		draw_common_arrow(origx1, origy1, origx2, origy2, ui_globals::cur_sw_dats_view, 0, 1, title_size);
 	}
@@ -1477,8 +1481,8 @@ void ui_menu_select_software::infos_render(void *selectedref, float origx1, floa
 
 	if (buffer.empty())
 	{
-		mui.draw_text_full(container, "No Infos Available", origx1, (origy2 + origy1) * 0.5f, origx2 - origx1, JUSTIFY_CENTER,
-		                              WRAP_WORD, DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
+		mui.draw_text_full(container, _("No Infos Available"), origx1, (origy2 + origy1) * 0.5f, origx2 - origx1, JUSTIFY_CENTER,
+										WRAP_WORD, DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
 		return;
 	}
 	else
@@ -1506,8 +1510,8 @@ void ui_menu_select_software::infos_render(void *selectedref, float origx1, floa
 			info_arrow(1, origx1, origx2, oy1, line_height, text_size, ud_arrow_width);
 		else
 			mui.draw_text_full(container, tempbuf.c_str(), origx1 + gutter_width, oy1, origx2 - origx1,
-			                              JUSTIFY_LEFT, WRAP_TRUNCATE, DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR,
-			                              nullptr, nullptr, text_size);
+											JUSTIFY_LEFT, WRAP_TRUNCATE, DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR,
+											nullptr, nullptr, text_size);
 		oy1 += (line_height * text_size);
 	}
 
@@ -1526,7 +1530,7 @@ void ui_menu_select_software::arts_render(void *selectedref, float origx1, float
 	static ui_software_info *oldsoft = nullptr;
 	static const game_driver *olddriver = nullptr;
 	const game_driver *driver = nullptr;
-	ui_software_info *soft = ((FPTR)selectedref > 2) ? (ui_software_info *)selectedref : nullptr;
+	ui_software_info *soft = (ui_software_info *)selectedref;
 
 	if (soft && soft->startempty == 1)
 	{
@@ -1813,8 +1817,8 @@ void ui_software_parts::custom_render(void *selectedref, float top, float bottom
 {
 	float width;
 	ui_manager &mui = machine().ui();
-	mui.draw_text_full(container, "Software part selection:", 0.0f, 0.0f, 1.0f, JUSTIFY_CENTER, WRAP_TRUNCATE,
-	                              DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
+	mui.draw_text_full(container, _("Software part selection:"), 0.0f, 0.0f, 1.0f, JUSTIFY_CENTER, WRAP_TRUNCATE,
+									DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
 	width += 2 * UI_BOX_LR_BORDER;
 	float maxwidth = MAX(origx2 - origx1, width);
 
@@ -1833,8 +1837,8 @@ void ui_software_parts::custom_render(void *selectedref, float top, float bottom
 	y1 += UI_BOX_TB_BORDER;
 
 	// draw the text within it
-	mui.draw_text_full(container, "Software part selection:", x1, y1, x2 - x1, JUSTIFY_CENTER, WRAP_TRUNCATE,
-	                              DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
+	mui.draw_text_full(container, _("Software part selection:"), x1, y1, x2 - x1, JUSTIFY_CENTER, WRAP_TRUNCATE,
+									DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
 }
 
 //-------------------------------------------------
@@ -1951,8 +1955,8 @@ void ui_bios_selection::custom_render(void *selectedref, float top, float bottom
 {
 	float width;
 	ui_manager &mui = machine().ui();
-	mui.draw_text_full(container, "Bios selection:", 0.0f, 0.0f, 1.0f, JUSTIFY_CENTER, WRAP_TRUNCATE,
-	                              DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
+	mui.draw_text_full(container, _("Bios selection:"), 0.0f, 0.0f, 1.0f, JUSTIFY_CENTER, WRAP_TRUNCATE,
+									DRAW_NONE, ARGB_WHITE, ARGB_BLACK, &width, nullptr);
 	width += 2 * UI_BOX_LR_BORDER;
 	float maxwidth = MAX(origx2 - origx1, width);
 
@@ -1971,6 +1975,6 @@ void ui_bios_selection::custom_render(void *selectedref, float top, float bottom
 	y1 += UI_BOX_TB_BORDER;
 
 	// draw the text within it
-	mui.draw_text_full(container, "Bios selection:", x1, y1, x2 - x1, JUSTIFY_CENTER, WRAP_TRUNCATE,
-	                              DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
+	mui.draw_text_full(container, _("Bios selection:"), x1, y1, x2 - x1, JUSTIFY_CENTER, WRAP_TRUNCATE,
+									DRAW_NORMAL, UI_TEXT_COLOR, UI_TEXT_BG_COLOR, nullptr, nullptr);
 }

@@ -54,7 +54,9 @@ function layoutbuildtask(_folder, _name)
 end
 
 function precompiledheaders()
-	pchheader("emu.h")
+    configuration { "not xcode4" }
+	   pchheader("emu.h")
+    configuration { }
 end
 
 function addprojectflags()
@@ -198,6 +200,11 @@ newoption {
 }
 
 newoption {
+	trigger = "TOOLCHAIN",
+	description = "Toolchain prefix"
+}
+
+newoption {
 	trigger = "PROFILE",
 	description = "Enable profiling.",
 }
@@ -268,15 +275,6 @@ newoption {
 newoption {
 	trigger = "NOWERROR",
 	description = "NOWERROR",
-}
-
-newoption {
-	trigger = "USE_BGFX",
-	description = "Use of BGFX.",
-	allowed = {
-		{ "0",   "Disabled" 	},
-		{ "1",   "Enabled"      },
-	}
 }
 
 newoption {
@@ -422,9 +420,8 @@ if _OPTIONS["NOASM"]=="1" and not _OPTIONS["FORCE_DRC_C_BACKEND"] then
 	_OPTIONS["FORCE_DRC_C_BACKEND"] = "1"
 end
 
-USE_BGFX = 1
-if(_OPTIONS["USE_BGFX"]~=nil) then
-	USE_BGFX = tonumber(_OPTIONS["USE_BGFX"])
+if(_OPTIONS["TOOLCHAIN"] == nil) then
+	_OPTIONS['TOOLCHAIN'] = ""
 end
 
 GEN_DIR = MAME_BUILD_DIR .. "generated/"
@@ -447,11 +444,17 @@ configurations {
 	"Release",
 }
 
-platforms {
-	"x32",
-	"x64",
-	"Native", -- for targets where bitness is not specified
-}
+if _ACTION == "xcode4" then
+    platforms {
+        "x64",
+    }
+else
+    platforms {
+        "x32",
+        "x64",
+        "Native", -- for targets where bitness is not specified
+    }
+end
 
 language "C++"
 
@@ -1050,6 +1053,7 @@ configuration { "nacl*" }
 configuration { "linux-*" }
 		links {
 			"dl",
+			"rt",
 		}
 		if _OPTIONS["distro"]=="debian-stable" then
 			defines
@@ -1063,12 +1067,15 @@ configuration { "linux-*" }
 configuration { "steamlink" }
 	links {
 		"dl",
-	}
+		"EGL",		
+		"GLESv2",
+ 		"SDL2",
+	}	
 	defines {
 		"EGL_API_FB",
 	}
 
-configuration { "osx*" }
+configuration { "osx* or xcode4" }
 		links {
 			"pthread",
 		}
@@ -1299,10 +1306,7 @@ else
 	startproject (_OPTIONS["subtarget"])
 end 
 mainProject(_OPTIONS["target"],_OPTIONS["subtarget"])
-
-if (_OPTIONS["STRIP_SYMBOLS"]=="1") then
-	strip()
-end
+strip()
 
 if _OPTIONS["with-tools"] then
 	group "tools"
