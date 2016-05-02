@@ -1742,8 +1742,9 @@ static MACHINE_CONFIG_DERIVED_CLASS( lupin3, mw8080bw_root, _8080bw_state )
 MACHINE_CONFIG_END
 
 static MACHINE_CONFIG_DERIVED( lupin3a, lupin3 )
+	MCFG_CPU_MODIFY("maincpu")
+	MCFG_CPU_PROGRAM_MAP(schaser_map)
 
-	/* video hardware */
 	MCFG_SCREEN_MODIFY("screen")
 	MCFG_SCREEN_UPDATE_DRIVER(_8080bw_state, screen_update_lupin3)
 MACHINE_CONFIG_END
