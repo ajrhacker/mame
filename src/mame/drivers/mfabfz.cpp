@@ -35,9 +35,6 @@ T     Trace interval
 Pressing enter will change the prompt from KMD > to KMD+> and pressing
 space will change it back.
 
-mfabfz85 -bios 1 : produces no output
-others are working
-
 ****************************************************************************/
 
 #include "emu.h"
@@ -55,10 +52,32 @@ public:
 		, m_maincpu(*this, "maincpu")
 		{ }
 
+	DECLARE_READ8_MEMBER(m1_wait_r);
+	DECLARE_WRITE_LINE_MEMBER(sod_w);
+
 private:
 	virtual void machine_reset() override;
 	required_device<cpu_device> m_maincpu;
 };
+
+
+READ8_MEMBER(mfabfz_state::m1_wait_r)
+{
+	if (!machine().side_effect_disabled())
+		m_maincpu->adjust_icount(-1);
+
+	return m_maincpu->space(AS_PROGRAM).read_byte(offset);
+}
+
+
+WRITE_LINE_MEMBER(mfabfz_state::sod_w)
+{
+	// mfabfz85 -bios 1 uses a hardcoded baud rate, currently guessed as 1200
+	// With no wait states: 1858 cycles between SOD updates
+	// With one wait state added to each M1 cycle: 2099 cycles between SOD updates
+	// With one wait state added for each ROM access: 2222 cycles between SOD updates
+	logerror("%llu, PC=%04X: 8085 SOD %s\n", (long long)m_maincpu->total_cycles(), m_maincpu->pcbase(), state ? "H" : "L");
+}
 
 
 static ADDRESS_MAP_START(mfabfz_mem, AS_PROGRAM, 8, mfabfz_state)
@@ -81,6 +100,10 @@ static ADDRESS_MAP_START(mfabfz85_io, AS_IO, 8, mfabfz_state)
 	ADDRESS_MAP_GLOBAL_MASK(0xff)
 	AM_RANGE(0xfe, 0xfe) AM_DEVREADWRITE("uart2", i8251_device, data_r, data_w)
 	AM_RANGE(0xff, 0xff) AM_DEVREADWRITE("uart2", i8251_device, status_r, control_w)
+ADDRESS_MAP_END
+
+static ADDRESS_MAP_START(mfabfz85_m1, AS_OPCODES, 8, mfabfz_state)
+	AM_RANGE(0x0000, 0xffff) AM_READ(m1_wait_r)
 ADDRESS_MAP_END
 
 /* Input ports */
@@ -134,9 +157,28 @@ static MACHINE_CONFIG_START( mfabfz85 )
 	MCFG_CPU_IO_MAP(mfabfz85_io)
 	MCFG_I8085A_SID(DEVREADLINE("rs232", rs232_port_device, rxd_r))
 	MCFG_I8085A_SOD(DEVWRITELINE("rs232", rs232_port_device, write_txd)) MCFG_DEVCB_INVERT
+	MCFG_DEVCB_CHAIN_OUTPUT(WRITELINE(mfabfz_state, sod_w))
 	MCFG_RS232_PORT_ADD("rs232", default_rs232_devices, "terminal")
 	MCFG_DEVICE_CARD_DEVICE_INPUT_DEFAULTS("terminal", terminal)
 	MCFG_DEVICE_ADD("uart2", I8251, 0)
+MACHINE_CONFIG_END
+
+static DEVICE_INPUT_DEFAULTS_START( terminal85a )
+	DEVICE_INPUT_DEFAULTS( "RS232_RXBAUD", 0xff, RS232_BAUD_1200 )
+	DEVICE_INPUT_DEFAULTS( "RS232_TXBAUD", 0xff, RS232_BAUD_1200 )
+	DEVICE_INPUT_DEFAULTS( "RS232_STARTBITS", 0xff, RS232_STARTBITS_1 )
+	DEVICE_INPUT_DEFAULTS( "RS232_DATABITS", 0xff, RS232_DATABITS_7 )
+	DEVICE_INPUT_DEFAULTS( "RS232_PARITY", 0xff, RS232_PARITY_NONE )
+	DEVICE_INPUT_DEFAULTS( "RS232_STOPBITS", 0xff, RS232_STOPBITS_2 )
+DEVICE_INPUT_DEFAULTS_END
+
+static MACHINE_CONFIG_DERIVED( mfabfz85a, mfabfz85 )
+	MCFG_CPU_MODIFY("maincpu")
+	MCFG_CPU_CLOCK(5000000)
+	MCFG_CPU_DECRYPTED_OPCODES_MAP(mfabfz85_m1)
+
+	MCFG_DEVICE_MODIFY("rs232")
+	MCFG_DEVICE_CARD_DEVICE_INPUT_DEFAULTS("terminal", terminal85a)
 MACHINE_CONFIG_END
 
 
@@ -150,33 +192,37 @@ ROM_START( mfabfz85 )
 	ROM_REGION( 0x8000, "roms", 0 )
 	ROM_SYSTEM_BIOS( 0, "32k", "MAT32K v1.8s" ) // 1982, not working
 	ROMX_LOAD( "mfa_mat32k_vers.1.8-s_ic0.bin", 0x0000, 0x8000, CRC(021d7dff) SHA1(aa34b3a8bac52fc7746d35f5ffc6328734788cc2), ROM_BIOS(1) )
-	ROM_SYSTEM_BIOS( 1, "8k", "MAT85 8k" ) // 1982, not working
-	ROMX_LOAD( "mfa_mat_1_0000.bin", 0x0000, 0x0800, CRC(73b588ea) SHA1(2b9570fe44c3c19d6aa7c7c11ecf390fa5d48998), ROM_BIOS(2) )
-	ROMX_LOAD( "mfa_mat_2_0800.bin", 0x0800, 0x0800, CRC(13f5be91) SHA1(2b9d64600679bab319a37381fc84e874c3b2a877), ROM_BIOS(2) )
-	ROMX_LOAD( "mfa_mat_3_1000.bin", 0x1000, 0x0800, CRC(c9b91bb4) SHA1(ef829964f507b1f6bbcf3c557c274fe728636efe), ROM_BIOS(2) )
-	ROMX_LOAD( "mfa_mat_4_1800.bin", 0x1800, 0x0800, CRC(649cd7f0) SHA1(e92f29c053234b36f22d525fe92e61bf24476f14), ROM_BIOS(2) )
-	ROM_SYSTEM_BIOS( 2, "16k_set1", "MAT85+ 16k set1" )
-	ROMX_LOAD( "mfa_mat85_0x0000-0x07ff.bin", 0x0000, 0x0800, CRC(73b588ea) SHA1(2b9570fe44c3c19d6aa7c7c11ecf390fa5d48998), ROM_BIOS(3) )
-	ROMX_LOAD( "mfa_mat85_0x0800-0x0fff.bin", 0x0800, 0x0800, CRC(13f5be91) SHA1(2B9D64600679BAB319A37381FC84E874C3B2A877), ROM_BIOS(3) )
-	ROMX_LOAD( "mfa_mat85_0x1000-0x17ff.bin", 0x1000, 0x0800, CRC(c9b91bb4) SHA1(ef829964f507b1f6bbcf3c557c274fe728636efe), ROM_BIOS(3) )
-	ROMX_LOAD( "mfa_mat85_0x1800-0x1fff.bin", 0x1800, 0x0800, CRC(649CD7F0) SHA1(e92f29c053234b36f22d525fe92e61bf24476f14), ROM_BIOS(3) )
-	ROMX_LOAD( "mfa_mat85_0x2000-0x27ff.bin", 0x2000, 0x0800, CRC(d3592915) SHA1(68daec6c5c63692bc147b1710b9c45ca780f2c7b), ROM_BIOS(3) )
-	ROMX_LOAD( "mfa_mat85_0x2800-0x2fff.bin", 0x2800, 0x0800, CRC(9a6aafa9) SHA1(af897e91cc2ce5d6e49fa88c920ad85e1f0209bf), ROM_BIOS(3) )
-	ROMX_LOAD( "mfa_mat85_0x3000-0x37ff.bin", 0x3000, 0x0800, CRC(eae4e3d5) SHA1(f7112965874417bbfc4a32f31f84e1db83249ab7), ROM_BIOS(3) )
-	ROMX_LOAD( "mfa_mat85_0x3800-0x3fff.bin", 0x3800, 0x0800, CRC(536db0e3) SHA1(328ccc18455f710390c29c0fd0f4b0713a4a69ae), ROM_BIOS(3) )
-	ROM_SYSTEM_BIOS( 3, "16k_set2", "MAT85+ 16k set2" )
-	ROMX_LOAD( "mat85_1_1of8.bin", 0x0000, 0x0800, CRC(73b588ea) SHA1(2b9570fe44c3c19d6aa7c7c11ecf390fa5d48998), ROM_BIOS(4) )
-	ROMX_LOAD( "mat85_2_2of8.bin", 0x0800, 0x0800, CRC(c97acc82) SHA1(eedb27c19a2d21b5ec5bca6cafeb25584e21e500), ROM_BIOS(4) )
-	ROMX_LOAD( "mat85_3_3of8.bin", 0x1000, 0x0800, CRC(c9b91bb4) SHA1(ef829964f507b1f6bbcf3c557c274fe728636efe), ROM_BIOS(4) )
-	ROMX_LOAD( "mat85_4_4of8.bin", 0x1800, 0x0800, CRC(649cd7f0) SHA1(e92f29c053234b36f22d525fe92e61bf24476f14), ROM_BIOS(4) )
-	ROMX_LOAD( "soft_1_5of8.bin",  0x2000, 0x0800, CRC(98d9e86e) SHA1(af78b370fe97a6017b192dadec4059256ee4f4c7), ROM_BIOS(4) )
-	ROMX_LOAD( "soft_2_6of8.bin",  0x2800, 0x0800, CRC(81fc3b24) SHA1(186dbd389fd700c5af1ef7c37948e11701ec596e), ROM_BIOS(4) )
-	ROMX_LOAD( "soft_3_7of8.bin",  0x3000, 0x0800, CRC(eae4e3d5) SHA1(f7112965874417bbfc4a32f31f84e1db83249ab7), ROM_BIOS(4) )
-	ROMX_LOAD( "soft_4_8of8.bin",  0x3800, 0x0800, CRC(536db0e3) SHA1(328ccc18455f710390c29c0fd0f4b0713a4a69ae), ROM_BIOS(4) )
-	ROM_SYSTEM_BIOS (4, "32k_dtp", "MAT32K dtp" )
-	ROMX_LOAD( "mfa_mat85_sp1_ed_kpl_dtp_terminal.bin", 0x0000, 0x8000, CRC(ed432c19) SHA1(31cbc06d276dbb201d50967f4ddba26a42560753), ROM_BIOS(5) )
+	ROM_SYSTEM_BIOS( 1, "16k_set1", "MAT85+ 16k set1" )
+	ROMX_LOAD( "mfa_mat85_0x0000-0x07ff.bin", 0x0000, 0x0800, CRC(73b588ea) SHA1(2b9570fe44c3c19d6aa7c7c11ecf390fa5d48998), ROM_BIOS(2) )
+	ROMX_LOAD( "mfa_mat85_0x0800-0x0fff.bin", 0x0800, 0x0800, CRC(13f5be91) SHA1(2B9D64600679BAB319A37381FC84E874C3B2A877), ROM_BIOS(2) )
+	ROMX_LOAD( "mfa_mat85_0x1000-0x17ff.bin", 0x1000, 0x0800, CRC(c9b91bb4) SHA1(ef829964f507b1f6bbcf3c557c274fe728636efe), ROM_BIOS(2) )
+	ROMX_LOAD( "mfa_mat85_0x1800-0x1fff.bin", 0x1800, 0x0800, CRC(649CD7F0) SHA1(e92f29c053234b36f22d525fe92e61bf24476f14), ROM_BIOS(2) )
+	ROMX_LOAD( "mfa_mat85_0x2000-0x27ff.bin", 0x2000, 0x0800, CRC(d3592915) SHA1(68daec6c5c63692bc147b1710b9c45ca780f2c7b), ROM_BIOS(2) )
+	ROMX_LOAD( "mfa_mat85_0x2800-0x2fff.bin", 0x2800, 0x0800, CRC(9a6aafa9) SHA1(af897e91cc2ce5d6e49fa88c920ad85e1f0209bf), ROM_BIOS(2) )
+	ROMX_LOAD( "mfa_mat85_0x3000-0x37ff.bin", 0x3000, 0x0800, CRC(eae4e3d5) SHA1(f7112965874417bbfc4a32f31f84e1db83249ab7), ROM_BIOS(2) )
+	ROMX_LOAD( "mfa_mat85_0x3800-0x3fff.bin", 0x3800, 0x0800, CRC(536db0e3) SHA1(328ccc18455f710390c29c0fd0f4b0713a4a69ae), ROM_BIOS(2) )
+	ROM_SYSTEM_BIOS( 2, "16k_set2", "MAT85+ 16k set2" )
+	ROMX_LOAD( "mat85_1_1of8.bin", 0x0000, 0x0800, CRC(73b588ea) SHA1(2b9570fe44c3c19d6aa7c7c11ecf390fa5d48998), ROM_BIOS(3) )
+	ROMX_LOAD( "mat85_2_2of8.bin", 0x0800, 0x0800, CRC(c97acc82) SHA1(eedb27c19a2d21b5ec5bca6cafeb25584e21e500), ROM_BIOS(3) )
+	ROMX_LOAD( "mat85_3_3of8.bin", 0x1000, 0x0800, CRC(c9b91bb4) SHA1(ef829964f507b1f6bbcf3c557c274fe728636efe), ROM_BIOS(3) )
+	ROMX_LOAD( "mat85_4_4of8.bin", 0x1800, 0x0800, CRC(649cd7f0) SHA1(e92f29c053234b36f22d525fe92e61bf24476f14), ROM_BIOS(3) )
+	ROMX_LOAD( "soft_1_5of8.bin",  0x2000, 0x0800, CRC(98d9e86e) SHA1(af78b370fe97a6017b192dadec4059256ee4f4c7), ROM_BIOS(3) )
+	ROMX_LOAD( "soft_2_6of8.bin",  0x2800, 0x0800, CRC(81fc3b24) SHA1(186dbd389fd700c5af1ef7c37948e11701ec596e), ROM_BIOS(3) )
+	ROMX_LOAD( "soft_3_7of8.bin",  0x3000, 0x0800, CRC(eae4e3d5) SHA1(f7112965874417bbfc4a32f31f84e1db83249ab7), ROM_BIOS(3) )
+	ROMX_LOAD( "soft_4_8of8.bin",  0x3800, 0x0800, CRC(536db0e3) SHA1(328ccc18455f710390c29c0fd0f4b0713a4a69ae), ROM_BIOS(3) )
+	ROM_SYSTEM_BIOS (3, "32k_dtp", "MAT32K dtp" )
+	ROMX_LOAD( "mfa_mat85_sp1_ed_kpl_dtp_terminal.bin", 0x0000, 0x8000, CRC(ed432c19) SHA1(31cbc06d276dbb201d50967f4ddba26a42560753), ROM_BIOS(4) )
 ROM_END
 
-/*    YEAR  NAME      PARENT  COMPAT   MACHINE    INPUT     CLASS,        INIT   COMPANY                                FULLNAME                       FLAGS */
-COMP( 1979, mfabfz,   0,      0,       mfabfz,    mfabfz,   mfabfz_state,   0, "Berufsfoerdungszentrum Essen", "Mikrocomputer fuer Ausbildung", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW)
-COMP( 1979, mfabfz85, mfabfz, 0,       mfabfz85,  mfabfz,   mfabfz_state,   0, "Berufsfoerdungszentrum Essen", "Mikrocomputer fuer Ausbildung MAT85", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW)
+ROM_START( mfabfz85a )
+	ROM_REGION( 0x8000, "roms", 0 )
+	ROM_LOAD( "mfa_mat_1_0000.bin", 0x0000, 0x0800, CRC(73b588ea) SHA1(2b9570fe44c3c19d6aa7c7c11ecf390fa5d48998) )
+	ROM_LOAD( "mfa_mat_2_0800.bin", 0x0800, 0x0800, CRC(13f5be91) SHA1(2b9d64600679bab319a37381fc84e874c3b2a877) )
+	ROM_LOAD( "mfa_mat_3_1000.bin", 0x1000, 0x0800, CRC(c9b91bb4) SHA1(ef829964f507b1f6bbcf3c557c274fe728636efe) )
+	ROM_LOAD( "mfa_mat_4_1800.bin", 0x1800, 0x0800, CRC(649cd7f0) SHA1(e92f29c053234b36f22d525fe92e61bf24476f14) )
+ROM_END
+
+/*    YEAR  NAME       PARENT  COMPAT  MACHINE    INPUT     CLASS,        INIT   COMPANY                                FULLNAME                       FLAGS */
+COMP( 1979, mfabfz,    0,      0,      mfabfz,    mfabfz,   mfabfz_state,   0, "Berufsfoerdungszentrum Essen", "Mikrocomputer fuer Ausbildung", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW)
+COMP( 1979, mfabfz85,  mfabfz, 0,      mfabfz85,  mfabfz,   mfabfz_state,   0, "Berufsfoerdungszentrum Essen", "Mikrocomputer fuer Ausbildung MAT85", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW)
+COMP( 1979, mfabfz85a, mfabfz, 0,      mfabfz85a, mfabfz,   mfabfz_state,   0, "Berufsfoerdungszentrum Essen", "Mikrocomputer fuer Ausbildung MAT85 (5 MHz version?)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW)
